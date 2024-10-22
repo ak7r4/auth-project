@@ -12,7 +12,7 @@ import (
     "golang.org/x/crypto/bcrypt"
 )
 
-// Estrutura para armazenar as configurações do banco de dados
+// Structure to store database configuration
 type Config struct {
     DB struct {
         Username string `json:"username"`
@@ -25,7 +25,7 @@ type Config struct {
 
 var db *sql.DB
 
-// Função para carregar configurações do arquivo JSON
+// Function to load configurations from the JSON file
 func loadConfig() (Config, error) {
     var config Config
     file, err := os.Open("config.json")
@@ -43,7 +43,7 @@ func loadConfig() (Config, error) {
     return config, nil
 }
 
-// Inicializa a conexão com o banco de dados
+// Initializes the connection to the database
 func initDB(config Config) {
     var err error
     dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
@@ -51,68 +51,68 @@ func initDB(config Config) {
 
     db, err = sql.Open("mysql", dsn)
     if err != nil {
-        log.Fatal("Erro ao conectar ao banco de dados:", err)
+        log.Fatal("Error connecting to the database:", err)
     }
 
-    // Verifica a conexão
+    // Check the connection
     if err := db.Ping(); err != nil {
-        log.Fatal("Erro ao conectar ao banco de dados:", err)
+        log.Fatal("Error connecting to the database:", err)
     }
 }
 
-// Função para lidar com o login
+// Function to handle login
 func handleLogin(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodPost {
-        http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
         return
     }
 
-    // Obtem os dados do formulário
+    // Get the form data
     username := r.FormValue("username")
     password := r.FormValue("password")
 
-    // Aqui você deve buscar o usuário no banco de dados e verificar a senha
+    // Here you should search for the user in the database and verify the password
     var storedHash string
     err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedHash)
     if err != nil {
-        http.Error(w, "Usuário ou senha incorreta", http.StatusUnauthorized)
+        http.Error(w, "Incorrect username or password", http.StatusUnauthorized)
         return
     }
 
-    // Verifica a senha
+    // Verify the password
     err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
     if err != nil {
-        http.Error(w, "Usuário ou senha incorreta", http.StatusUnauthorized)
+        http.Error(w, "Incorrect username or password", http.StatusUnauthorized)
         return
     }
 
-    // Redireciona para uma página de sucesso ou outra ação
+    // Redirect to a success page or another action
     http.Redirect(w, r, "/Success", http.StatusSeeOther)
 }
 
 func main() {
-    // Carrega as configurações do banco de dados
+    // Load database configuration
     config, err := loadConfig()
     if err != nil {
-        log.Fatal("Erro ao carregar configurações:", err)
+        log.Fatal("Error loading configurations:", err)
     }
 
-    // Inicializa o banco de dados
+    // Initialize the database
     initDB(config)
 
-    // Rota para servir a página de login
+    // Route to serve the login page
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        http.ServeFile(w, r, "pagina.html")
+        http.ServeFile(w, r, "page.html")
     })
 
     http.HandleFunc("/Success", func(w http.ResponseWriter, r *http.Request) {
-        http.ServeFile(w, r, "autenticado.html")
+        http.ServeFile(w, r, "authenticated.html")
     })
 
-    // Rota para o login
+    // Route for login
     http.HandleFunc("/login", handleLogin)
 
-    // Inicia o servidor na porta 8080
-    log.Println("Servidor rodando na porta 8080...")
+    // Start the server on port 8080
+    log.Println("Server running on port 8080...")
     http.ListenAndServe(":8080", nil)
 }
