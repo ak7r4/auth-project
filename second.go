@@ -102,11 +102,11 @@ func main() {
 
     // Route to serve the login page
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        http.ServeFile(w, r, "page.html")
+        http.ServeFile(w, r, "pagina.html")
     })
 
     http.HandleFunc("/Success", func(w http.ResponseWriter, r *http.Request) {
-        http.ServeFile(w, r, "authenticated.html")
+        http.ServeFile(w, r, "autenticado.html")
     })
 
     // Route for login
