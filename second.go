@@ -2,7 +2,6 @@ package main
 
 import (
     "database/sql"
-    "encoding/json"
     "fmt"
     "log"
     "net/http"
@@ -10,44 +9,30 @@ import (
 
     _ "github.com/go-sql-driver/mysql"
     "golang.org/x/crypto/bcrypt"
+    "github.com/joho/godotenv"
 )
-
-// Structure to store database configuration
-type Config struct {
-    DB struct {
-        Username string `json:"username"`
-        Password string `json:"password"`
-        Database string `json:"database"`
-        Host     string `json:"host"`
-        Port     string `json:"port"`
-    } `json:"db"`
-}
 
 var db *sql.DB
 
-// Function to load configurations from the JSON file
-func loadConfig() (Config, error) {
-    var config Config
-    file, err := os.Open("config.json")
-    if err != nil {
-        return config, err
-    }
-    defer file.Close()
-
-    decoder := json.NewDecoder(file)
-    err = decoder.Decode(&config)
-    if err != nil {
-        return config, err
-    }
-
-    return config, nil
-}
-
 // Initializes the connection to the database
-func initDB(config Config) {
+func initDB() {
     var err error
+
+    // Load environment variables from .env file
+    err = godotenv.Load()
+    if err != nil {
+        log.Fatal("Error loading .env file")
+    }
+
+    // Retrieve configuration from environment variables
+    username := os.Getenv("DB_USERNAME")
+    password := os.Getenv("DB_PASSWORD")
+    database := os.Getenv("DB_DATABASE")
+    host := os.Getenv("DB_HOST")
+    port := os.Getenv("DB_PORT")
+
     dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
-        config.DB.Username, config.DB.Password, config.DB.Host, config.DB.Port, config.DB.Database)
+        username, password, host, port, database)
 
     db, err = sql.Open("mysql", dsn)
     if err != nil {
@@ -91,14 +76,8 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-    // Load database configuration
-    config, err := loadConfig()
-    if err != nil {
-        log.Fatal("Error loading configurations:", err)
-    }
-
     // Initialize the database
-    initDB(config)
+    initDB()
 
     // Route to serve the login page
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
