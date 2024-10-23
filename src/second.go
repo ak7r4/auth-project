@@ -58,30 +58,6 @@ type PageVariables struct {
 
 // Function to handle login
 func handleLogin(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost && r.Method != http.MethodGet {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
-
-    // Get the form data
-    username := r.FormValue("username")
-    password := r.FormValue("password")
-
-    if len(username) > 50 {
-        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
-        t, _ := template.ParseFiles("templates/pagina.html")
-        t.Execute(w, pageVariables)
-        return
-    }
-
-    password = r.FormValue("password")
-    if len(password) > 300 {
-        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
-        t, _ := template.ParseFiles("templates/pagina.html")
-        t.Execute(w, pageVariables)
-        return
-    }
-
     if r.Method == http.MethodGet {
         pageVariables := PageVariables{ErrorMessage: ""}
         t, _ := template.ParseFiles("templates/pagina.html")
@@ -89,27 +65,52 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Search for the user in the database and verify the password
-    var storedHash string
-    err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedHash)
-    if err != nil {
-        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
-        t, _ := template.ParseFiles("templates/pagina.html")
-        t.Execute(w, pageVariables)
-        return
-    }
+    if r.Method == http.MethodPost {
 
-    // Verify the password
-    err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
-    if err != nil {
-        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
-        t, _ := template.ParseFiles("templates/pagina.html")
-        t.Execute(w, pageVariables)
-        return
-    }
+        // Get the form data
+        username := r.FormValue("username")
+        password := r.FormValue("password")
 
-    // Redirect to a success page or another action
-    http.Redirect(w, r, "/Success", http.StatusSeeOther)
+
+	if username == "" || password == "" {
+            pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
+            t, _ := template.ParseFiles("templates/pagina.html")
+            t.Execute(w, pageVariables)
+            return
+    	}
+
+    	if len(username) > 50 || len(password) > 300 {
+        	pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
+	        t, _ := template.ParseFiles("templates/pagina.html")
+        	t.Execute(w, pageVariables)
+	        return
+	    }
+
+	    // Search for the user in the database and verify the password
+	    var storedHash string
+	    err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedHash)
+	    if err != nil {
+	        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
+	        t, _ := template.ParseFiles("templates/pagina.html")
+	        t.Execute(w, pageVariables)
+	        return
+	    }
+
+	    // Verify the password
+	    err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
+	    if err != nil {
+	        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
+	        t, _ := template.ParseFiles("templates/pagina.html")
+	        t.Execute(w, pageVariables)
+	        return
+	    }
+
+	    // Redirect to a success page or another action
+	    http.Redirect(w, r, "/Success", http.StatusSeeOther)
+	} else {
+	    http.Error(w, "Metho not allowed", http.StatusMethodNotAllowed)
+
+	}
 }
 
 func main() {
