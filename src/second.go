@@ -7,6 +7,7 @@ import (
     "net/http"
     "os"
     "path/filepath"
+    "html/template"
 
     _ "github.com/go-sql-driver/mysql"
     "golang.org/x/crypto/bcrypt"
@@ -51,9 +52,13 @@ func initDB() {
     }
 }
 
+type PageVariables struct {
+    ErrorMessage string
+}
+
 // Function to handle login
 func handleLogin(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
+    if r.Method != http.MethodPost && r.Method != http.MethodGet {
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
         return
     }
@@ -64,13 +69,24 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 
     username = r.FormValue("username")
     if len(username) > 50 {
-        http.Error(w, "Incorrect username or password", http.StatusBadRequest)
+        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
+        t, _ := template.ParseFiles("templates/pagina.html")
+        t.Execute(w, pageVariables)
         return
     }
 
     password = r.FormValue("password")
     if len(password) > 300 {
-        http.Error(w, "Incorrect username or password", http.StatusBadRequest)
+        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
+        t, _ := template.ParseFiles("templates/pagina.html")
+        t.Execute(w, pageVariables)
+        return
+    }
+
+    if r.Method == http.MethodGet {
+        pageVariables := PageVariables{ErrorMessage: ""}
+        t, _ := template.ParseFiles("templates/pagina.html")
+        t.Execute(w, pageVariables)
         return
     }
 
@@ -78,14 +94,18 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
     var storedHash string
     err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedHash)
     if err != nil {
-        http.Error(w, "Incorrect username or password", http.StatusUnauthorized)
+        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
+        t, _ := template.ParseFiles("templates/pagina.html")
+        t.Execute(w, pageVariables)
         return
     }
 
     // Verify the password
     err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
     if err != nil {
-        http.Error(w, "Incorrect username or password", http.StatusUnauthorized)
+        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
+        t, _ := template.ParseFiles("templates/pagina.html")
+        t.Execute(w, pageVariables)
         return
     }
 

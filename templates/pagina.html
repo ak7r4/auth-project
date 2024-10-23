@@ -10,6 +10,10 @@
     <div class="login-container">
         <h1>Login</h1>
 
+        {{if .ErrorMessage}}
+        <div class="error-message">{{.ErrorMessage}}</div>
+        {{end}}
+
         <form action="/login" method="POST">
             <label for="username">Usuário:</label>
             <input type="text" id="username" name="username" required>
