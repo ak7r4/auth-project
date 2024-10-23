@@ -6,6 +6,7 @@ import (
     "log"
     "net/http"
     "os"
+    "path/filepath"
 
     _ "github.com/go-sql-driver/mysql"
     "golang.org/x/crypto/bcrypt"
@@ -18,10 +19,15 @@ var db *sql.DB
 func initDB() {
     var err error
 
-    // Load environment variables from .env file
-    err = godotenv.Load()
+    // Load environment variables from .env file in config directory
+    envPath := filepath.Join("config", ".env")
+    err = godotenv.Load(envPath)
     if err != nil {
-        log.Fatal("Error loading .env file")
+        log.Fatal("Error finding absolute path of .env file:", err)
+    }
+
+    if err != nil {
+        log.Fatal("Error loading .env file:", err)
     }
 
     // Retrieve configuration from environment variables
@@ -56,7 +62,19 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
     username := r.FormValue("username")
     password := r.FormValue("password")
 
-    // Here you should search for the user in the database and verify the password
+    username = r.FormValue("username")
+    if len(username) > 50 {
+        http.Error(w, "Incorrect username or password", http.StatusBadRequest)
+        return
+    }
+
+    password = r.FormValue("password")
+    if len(password) > 300 {
+        http.Error(w, "Incorrect username or password", http.StatusBadRequest)
+        return
+    }
+
+    // Search for the user in the database and verify the password
     var storedHash string
     err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedHash)
     if err != nil {
@@ -79,13 +97,17 @@ func main() {
     // Initialize the database
     initDB()
 
+    // Serve static files from the assets directory
+    fs := http.FileServer(http.Dir("assets"))
+    http.Handle("/assets/", http.StripPrefix("/assets/", fs))
+
     // Route to serve the login page
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        http.ServeFile(w, r, "pagina.html")
+        http.ServeFile(w, r, filepath.Join("templates", "pagina.html"))
     })
 
     http.HandleFunc("/Success", func(w http.ResponseWriter, r *http.Request) {
-        http.ServeFile(w, r, "autenticado.html")
+        http.ServeFile(w, r, filepath.Join("templates", "autenticado.html"))
     })
 
     // Route for login
