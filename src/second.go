@@ -67,7 +67,6 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
     username := r.FormValue("username")
     password := r.FormValue("password")
 
-    username = r.FormValue("username")
     if len(username) > 50 {
         pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
         t, _ := template.ParseFiles("templates/pagina.html")
@@ -121,17 +120,13 @@ func main() {
     fs := http.FileServer(http.Dir("assets"))
     http.Handle("/assets/", http.StripPrefix("/assets/", fs))
 
-    // Route to serve the login page
-    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        http.ServeFile(w, r, filepath.Join("templates", "pagina.html"))
-    })
-
     http.HandleFunc("/Success", func(w http.ResponseWriter, r *http.Request) {
         http.ServeFile(w, r, filepath.Join("templates", "autenticado.html"))
     })
 
     // Route for login
     http.HandleFunc("/login", handleLogin)
+    http.HandleFunc("/", handleLogin)
 
     // Start the server on port 8080
     log.Println("Server running on port 8080...")
