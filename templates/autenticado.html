@@ -1,11 +1,18 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autenticado</title>
+    <link rel="stylesheet" href="/assets/css/styles_autenticado.css">
+    <title>Authenticated Page</title>
 </head>
 <body>
-    <h1>Bem-vindo</h1>
+    <h1>Bem-vindo, você está autenticado!</h1>
+    <h2>Sua sessão dura de 5 segundos!<h2>
+    <form action="/logout" method="POST">
+        <button type="submit" class="button">Logout</button>
+    </form>
+
 </body>
 </html>

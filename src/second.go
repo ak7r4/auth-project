@@ -4,14 +4,17 @@ import (
     "database/sql"
     "fmt"
     "log"
-    "net/http"
     "os"
     "path/filepath"
     "html/template"
+    "net/http"
 
+    "github.com/gin-gonic/gin"
+    "github.com/gin-contrib/sessions"
+    "github.com/gin-contrib/sessions/cookie"
     _ "github.com/go-sql-driver/mysql"
-    "golang.org/x/crypto/bcrypt"
     "github.com/joho/godotenv"
+    "golang.org/x/crypto/bcrypt"
 )
 
 var db *sql.DB
@@ -23,10 +26,6 @@ func initDB() {
     // Load environment variables from .env file in config directory
     envPath := filepath.Join("config", ".env")
     err = godotenv.Load(envPath)
-    if err != nil {
-        log.Fatal("Error finding absolute path of .env file:", err)
-    }
-
     if err != nil {
         log.Fatal("Error loading .env file:", err)
     }
@@ -52,84 +51,132 @@ func initDB() {
     }
 }
 
-type PageVariables struct {
-    ErrorMessage string
+// Renders an HTML page
+func render(c *gin.Context, tmpl string, data gin.H) {
+    t, err := template.ParseFiles(tmpl)
+    if err != nil {
+        c.String(http.StatusInternalServerError, "Template error")
+        return
+    }
+    t.Execute(c.Writer, data)
 }
 
-// Function to handle login
-func handleLogin(w http.ResponseWriter, r *http.Request) {
-    if r.Method == http.MethodGet {
-        pageVariables := PageVariables{ErrorMessage: ""}
-        t, _ := template.ParseFiles("templates/pagina.html")
-        t.Execute(w, pageVariables)
+// Middleware to ensure the user is authenticated
+func authRequired(c *gin.Context) {
+    session := sessions.Default(c)
+    user := session.Get("user")
+    if user == nil {
+        log.Println("No active session, redirecting to /login")
+        // Se o usuário não estiver autenticado, redireciona para /login
+        c.Redirect(http.StatusSeeOther, "/login")
+        c.Abort()
+        return
+    }
+    log.Println("User authenticated:", user)
+    // Se o usuário estiver autenticado, permite o acesso
+    c.Next()
+}
+
+// Handle login logic
+func handleLogin(c *gin.Context) {
+    if c.Request.Method == http.MethodGet {
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": ""})
         return
     }
 
-    if r.Method == http.MethodPost {
+    username := c.PostForm("username")
+    password := c.PostForm("password")
 
-        // Get the form data
-        username := r.FormValue("username")
-        password := r.FormValue("password")
+    if username == "" || password == "" {
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Usuário ou senha incorretos."})
+        return
+    }
 
+    if len(username) > 50 || len(password) > 300 {
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Usuário ou senha incorretos."})
+        return
+    }
 
-	if username == "" || password == "" {
-            pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
-            t, _ := template.ParseFiles("templates/pagina.html")
-            t.Execute(w, pageVariables)
-            return
-    	}
+    // Search for the user in the database
+    var storedHash string
+    err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedHash)
+    if err != nil {
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Usuário ou senha incorretos."})
+        return
+    }
 
-    	if len(username) > 50 || len(password) > 300 {
-        	pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
-	        t, _ := template.ParseFiles("templates/pagina.html")
-        	t.Execute(w, pageVariables)
-	        return
-	    }
+    // Verify the password
+    err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
+    if err != nil {
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Usuário ou senha incorretos."})
+        return
+    }
 
-	    // Search for the user in the database and verify the password
-	    var storedHash string
-	    err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedHash)
-	    if err != nil {
-	        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
-	        t, _ := template.ParseFiles("templates/pagina.html")
-	        t.Execute(w, pageVariables)
-	        return
-	    }
+    // Store session
+    session := sessions.Default(c)
+    session.Set("user", username)
+    if err := session.Save(); err != nil {
+        log.Println("Erro ao salvar sessão:", err)
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Erro ao salvar a sessão. Tente novamente."})
+        return
+    }
 
-	    // Verify the password
-	    err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
-	    if err != nil {
-	        pageVariables := PageVariables{ErrorMessage: "Usuário ou senha incorretos."}
-	        t, _ := template.ParseFiles("templates/pagina.html")
-	        t.Execute(w, pageVariables)
-	        return
-	    }
+    log.Println("User logged in successfully:", username)
+    // Redirect to success page
+    c.Redirect(http.StatusSeeOther, "/success")
+}
 
-	    // Redirect to a success page or another action
-	    http.Redirect(w, r, "/Success", http.StatusSeeOther)
-	} else {
-	    http.Error(w, "Metho not allowed", http.StatusMethodNotAllowed)
-
-	}
+func handleLogout(c *gin.Context) {
+    session := sessions.Default(c)
+    session.Clear()  // Limpa todos os dados da sessão
+    session.Save()   // Salva a sessão vazia para encerrar
+    log.Println("User logged out")
+    c.Redirect(http.StatusSeeOther, "/login")  // Redireciona para a página de login
 }
 
 func main() {
     // Initialize the database
     initDB()
 
-    // Serve static files from the assets directory
-    fs := http.FileServer(http.Dir("assets"))
-    http.Handle("/assets/", http.StripPrefix("/assets/", fs))
+    // Initialize the Gin router
+    r := gin.Default()
 
-    http.HandleFunc("/Success", func(w http.ResponseWriter, r *http.Request) {
-        http.ServeFile(w, r, filepath.Join("templates", "autenticado.html"))
+    // Session store middleware (using cookie store for simplicity)
+    store := cookie.NewStore([]byte("hjkasd123789hiduwsSDFFDVGFGHJ45634557689HGDHFGDGDZXFHJSDFGNDSdfgsdfgsdfg4356ergh456hsb324v45h5e67kjDFGSDFG345435yudZGDZFGSDFG"))
+    store.Options(sessions.Options{
+	Path:     "/",
+	HttpOnly: true,
+	Secure:   false,
+	MaxAge:   5,
+    })
+    r.Use(sessions.Sessions("mysession", store))
+
+    // Serve static files from the assets directory
+    r.Static("/assets", "./assets")
+
+    // Public routes
+    r.GET("/login", handleLogin)
+    r.POST("/login", handleLogin)
+
+    // Protected routes (require authentication)
+    r.GET("/success", authRequired, func(c *gin.Context) {
+        render(c, "templates/autenticado.html", gin.H{})
     })
 
-    // Route for login
-    http.HandleFunc("/login", handleLogin)
-    http.HandleFunc("/", handleLogin)
+    // Root route redirects to login
+    r.GET("/", func(c *gin.Context) {
+        c.Redirect(http.StatusSeeOther, "/login")
+    })
+
+    r.POST("/logout", handleLogout)
+
+    r.GET("/logout", func(c *gin.Context) {
+        c.Redirect(http.StatusSeeOther, "/login")
+    })
+
 
     // Start the server on port 8080
     log.Println("Server running on port 8080...")
-    http.ListenAndServe(":8080", nil)
+    r.Run(":8080")
+
 }
