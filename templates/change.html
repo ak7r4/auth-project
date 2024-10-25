@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Change password page</title>
+    <link rel="stylesheet" href="/assets/css/change.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Change password</h1>
+        <form action="/change_password" method="POST" class="form">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="current_password">Your current password:</label>
+            <input type="password" id="current_password" name="current_password" required>
+            
+            <label for="new_password">New password:</label>
+            <input type="password" id="new_password" name="new_password" required>
+            
+            <label for="retype_new_password">Retype new password:</label>
+            <input type="password" id="retype_new_password" name="retype_new_password" required>
+            
+            <button type="submit" class="submit-button">Change password</button>
+        </form>
+	<br>
+        <form action="/success" method="POST" class="back-form">
+            <button type="submit" class="submit-button">Back to menu</button>
+        </form>
+    </div>
+</body>
+</html>

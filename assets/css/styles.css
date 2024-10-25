@@ -11,7 +11,7 @@ body {
 }
 
 .login-container {
-    text-align: center;
+    text-align: left;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -40,6 +40,8 @@ h1 {
 label {
     display: block;
     margin-bottom: 8px;
+    align-items: left;
+    justify-content: center;
 }
 
 input {
@@ -64,4 +66,27 @@ button {
 
 button:hover {
     background-color: #218838;
+}
+
+.signup-message {
+    font-size: 16px;
+    color: #333;
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: left;
+}
+
+.signup-message a {
+    color: #007BFF;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.signup-message a:hover {
+    color: #0056b3;
+}
+
+.signup-message a:active {
+    color: #003d7a;
 }

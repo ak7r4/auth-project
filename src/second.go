@@ -147,7 +147,7 @@ func main() {
 	Path:     "/",
 	HttpOnly: true,
 	Secure:   false,
-	MaxAge:   5,
+	MaxAge:   50,
     })
     r.Use(sessions.Sessions("mysession", store))
 
@@ -162,18 +162,33 @@ func main() {
     r.GET("/success", authRequired, func(c *gin.Context) {
         render(c, "templates/autenticado.html", gin.H{})
     })
+    r.POST("/success", authRequired, func(c *gin.Context) {
+        render(c, "templates/autenticado.html", gin.H{})
+    })
+
+    // Protected routes (require authentication)
+    r.POST("/change", authRequired, func(c *gin.Context) {
+        log.Println("Acessando a rota /change")
+        render(c, "templates/change.html", gin.H{});
+    })
+    r.GET("/change", func(c *gin.Context) {
+        c.Redirect(http.StatusSeeOther, "/login")
+    })
 
     // Root route redirects to login
     r.GET("/", func(c *gin.Context) {
         c.Redirect(http.StatusSeeOther, "/login")
     })
 
-    r.POST("/logout", handleLogout)
+    // Root route redirects to signup
+    r.GET("/signup", func(c *gin.Context) {
+        render(c, "templates/signup.html", gin.H{})
+    })
 
+    r.POST("/logout", handleLogout)
     r.GET("/logout", func(c *gin.Context) {
         c.Redirect(http.StatusSeeOther, "/login")
     })
-
 
     // Start the server on port 8080
     log.Println("Server running on port 8080...")

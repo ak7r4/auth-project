@@ -16,7 +16,7 @@ body {
 }
 
 /* Container principal */
-.login-container {
+.container {
     background-color: #fff;
     padding: 20px;
     border-radius: 8px;
@@ -32,16 +32,30 @@ h1 {
     text-align: center;
 }
 
-/* Container dos botões */
-.button-container {
+/* Estilo do formulário */
+.form {
     display: flex;
-    flex-direction: column; /* Alinha os botões em coluna */
-    gap: 10px; /* Espaçamento entre os botões */
+    flex-direction: column;
 }
 
-/* Estilo do botão */
-button {
-    width: 100%; /* Garante que o botão ocupe 100% da largura do container */
+/* Estilo dos rótulos */
+label {
+    margin-bottom: 5px;
+    color: #555;
+}
+
+/* Estilo dos campos de entrada */
+input[type="text"],
+input[type="password"] {
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Estilo do botão de submit */
+.submit-button {
+    width: 100%;
     padding: 10px;
     background-color: #28a745; /* Verde */
     color: white;
@@ -52,6 +66,6 @@ button {
 }
 
 /* Efeito hover nos botões */
-button:hover {
+.submit-button:hover {
     background-color: #218838; /* Verde escuro */
 }
