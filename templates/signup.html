@@ -13,6 +13,9 @@
         {{if .ErrorMessage}}
         <div class="error-message">{{.ErrorMessage}}</div>
         {{end}}
+        {{if .SuccessMessage}}
+        <div class="success-message">{{.SuccessMessage}}</div>
+        {{end}}
 
         <form action="/signup" method="POST">
             <label for="username">New username:</label>

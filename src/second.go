@@ -156,8 +156,9 @@ func handleSignup(c *gin.Context) {
         return
     }
 
-    // Redireciona para a página de login após criar o usuário com sucesso
-    c.Redirect(http.StatusSeeOther, "/login")
+    log.Println("Usuário criado com sucesso:", username)
+    render(c, "templates/change.html", gin.H{"SuccessMessage": "User created successfully!"})
+
 }
 
 
