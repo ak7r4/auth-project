@@ -14,6 +14,9 @@
         {{if .ErrorMessage}}
         <div class="error-message">{{.ErrorMessage}}</div>
         {{end}}
+        {{if .SuccessMessage}}
+        <div class="success-message">{{.SuccessMessage}}</div>
+        {{end}}
 
 	<br>
         <form action="/change" method="POST" class="form">

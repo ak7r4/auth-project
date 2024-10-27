@@ -69,3 +69,35 @@ input[type="password"] {
 .submit-button:hover {
     background-color: #218838; /* Verde escuro */
 }
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 1rem;
+    margin: 0.5rem 0 1rem;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+}
+.error-message::before {
+    content: "⚠️";
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}
+.success-message {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 1rem;
+    margin: 0.5rem 0 1rem;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+}
+.success-message::before {
+    content: "✅";
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}

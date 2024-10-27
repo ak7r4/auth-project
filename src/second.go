@@ -182,12 +182,6 @@ func handleChangePassword(c *gin.Context) {
     }
 
     // Verificar se a nova senha atende aos requisitos de segurança
-//    passwordRegex := `^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{12,}$`
-//    if matched, _ := regexp.MatchString(passwordRegex, newPassword); !matched {
-//        render(c, "templates/change.html", gin.H{"ErrorMessage": "Password must be at least 12 characters, with at least one uppercase letter, one lowercase letter, one number, and one special character."})
-//        return
-//    }
-
     if !validatePassword(newPassword) {
         render(c, "templates/change.html", gin.H{"ErrorMessage": "Password must be at least 12 characters, with at least one uppercase letter, one lowercase letter, one number, and one special character."})
         return
@@ -222,7 +216,7 @@ func handleChangePassword(c *gin.Context) {
     }
 
     log.Println("Password updated successfully for user:", username)
-    render(c, "templates/change.html", gin.H{"ErrorMessage": "Password updated successfully!"})
+    render(c, "templates/change.html", gin.H{"SuccessMessage": "Password updated successfully!"})
 }
 
 
