@@ -9,10 +9,14 @@
 <body>
     <div class="container">
         <h1>Change password</h1>
-        <form action="/change_password" method="POST" class="form">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-            
+
+	<br>
+        {{if .ErrorMessage}}
+        <div class="error-message">{{.ErrorMessage}}</div>
+        {{end}}
+
+	<br>
+        <form action="/change" method="POST" class="form">
             <label for="current_password">Your current password:</label>
             <input type="password" id="current_password" name="current_password" required>
             
