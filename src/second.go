@@ -305,12 +305,18 @@ func main() {
     r := gin.Default()
 
     // Session store middleware (using cookie store for simplicity)
-    store := cookie.NewStore([]byte("hjkasd123789hiduwsSDFFDVGFGHJ45634557689HGDHFGDGDZXFHJSDFGNDSdfgsdfgsdfg4356ergh456hsb324v45h5e67kjDFGSDFG345435yudZGDZFGSDFG"))
+    //envPath := filepath.Join("config", ".env")
+    //err = godotenv.Load(envPath)
+    //if err != nil {
+    //    log.Fatal("Error loading .env file:", err)
+    //}
+    secretKey := os.Getenv("SECRET_KEY")
+    store := cookie.NewStore([]byte(secretKey))
     store.Options(sessions.Options{
 	Path:     "/",
 	HttpOnly: true,
 	Secure:   false,
-	MaxAge:   50,
+	MaxAge:   5000,
     })
     r.Use(sessions.Sessions("mysession", store))
 
