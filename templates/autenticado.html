@@ -5,17 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Página de Login</title>
     <link rel="stylesheet" href="/assets/css/styles_autenticado.css">
-    <script src="/assets/js/autenticado.js"></script>
+    <script src="/assets/js/autenticado.js" defer></script>
 </head>
 <body>
     <div class="login-container">
         <h1>Authenticated menu</h1>
 	<div class="button-container">
-	    <form action="/change" method="GET">
-            <button type="submit" id="change">Change my password</button>
-	    </form>
+            <button type="button" id="change">Change my password</button>
 	    <form action="/logout" method="POST">
-            <button type="submit" id="logout">Logout</button>
+	        <button type="submit" id="logout">Logout</button>
             </form>
 	</div>
     </div>

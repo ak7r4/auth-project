@@ -128,19 +128,27 @@ func handleSignup(c *gin.Context) {
 
     // Validações de campos obrigatórios, tamanho e correspondência de senhas
     if username == "" || password == "" || rpassword == "" {
-        render(c, "templates/signup.html", gin.H{"ErrorMessage": "Todos os campos são obrigatórios."})
+        render(c, "templates/signup.html", gin.H{"ErrorMessage": "All fields are required."})
         return
     }
     if len(username) > 50 {
-        render(c, "templates/signup.html", gin.H{"ErrorMessage": "O nome de usuário não pode ter mais de 50 caracteres."})
+        render(c, "templates/signup.html", gin.H{"ErrorMessage": "The username cannot exceed 50 characters."})
+        return
+    }
+    if len(password) > 150 {
+        render(c, "templates/signup.html", gin.H{"ErrorMessage": "The password cannot exceed 150 characters."})
+        return
+    }
+    if len(rpassword) > 150 {
+        render(c, "templates/signup.html", gin.H{"ErrorMessage": "The password cannot exceed 150 characters."})
         return
     }
     if password != rpassword {
-        render(c, "templates/signup.html", gin.H{"ErrorMessage": "As senhas não coincidem."})
+        render(c, "templates/signup.html", gin.H{"ErrorMessage": "Passwords do not match"})
         return
     }
     if !validatePassword(password) {
-        render(c, "templates/signup.html", gin.H{"ErrorMessage": "A senha deve ter pelo menos 12 caracteres, incluindo uma letra maiúscula, uma letra minúscula, um número e um caractere especial."})
+        render(c, "templates/signup.html", gin.H{"ErrorMessage": "The password must be at least 12 characters long and include an uppercase letter, a lowercase letter, a number, and a special character."})
         return
     }
 
@@ -148,16 +156,16 @@ func handleSignup(c *gin.Context) {
     err := createUser(username, password)
     if err != nil {
         if err.Error() == "username already exists" {
-            render(c, "templates/signup.html", gin.H{"ErrorMessage": "Nome de usuário já existe. Escolha outro."})
+            render(c, "templates/signup.html", gin.H{"ErrorMessage": "Username already exists. Please choose another."})
             return
         }
         log.Println("Erro ao criar usuário:", err)
-        render(c, "templates/signup.html", gin.H{"ErrorMessage": "Erro ao criar conta. Tente novamente."})
+        render(c, "templates/signup.html", gin.H{"ErrorMessage": "Error creating account. Please try again."})
         return
     }
 
     log.Println("Usuário criado com sucesso:", username)
-    render(c, "templates/change.html", gin.H{"SuccessMessage": "User created successfully!"})
+    render(c, "templates/signup.html", gin.H{"SuccessMessage": "User created successfully!"})
 
 }
 
@@ -176,18 +184,6 @@ func handleChangePassword(c *gin.Context) {
         render(c, "templates/change.html", gin.H{"ErrorMessage": ""})
         return
     }
-
-    if newPassword != retypeNewPassword {
-        render(c, "templates/change.html", gin.H{"ErrorMessage": "The new passwords do not match."})
-        return
-    }
-
-    // Verificar se a nova senha atende aos requisitos de segurança
-    if !validatePassword(newPassword) {
-        render(c, "templates/change.html", gin.H{"ErrorMessage": "Password must be at least 12 characters, with at least one uppercase letter, one lowercase letter, one number, and one special character."})
-        return
-    }
-
     // Fetch the stored hash for the user
     var storedHash string
     err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedHash)
@@ -199,6 +195,29 @@ func handleChangePassword(c *gin.Context) {
     // Verifica se a senha atual está correta
     if err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(currentPassword)); err != nil {
         render(c, "templates/change.html", gin.H{"ErrorMessage": "Invalid current password."})
+        return
+    }
+
+    if len(currentPassword) > 150 {
+        render(c, "templates/signup.html", gin.H{"ErrorMessage": "The password cannot exceed 150 characters."})
+        return
+    }
+    if newPassword != retypeNewPassword {
+        render(c, "templates/change.html", gin.H{"ErrorMessage": "The new passwords do not match."})
+        return
+    }
+    if len(newPassword) > 150 {
+        render(c, "templates/signup.html", gin.H{"ErrorMessage": "The password cannot exceed 150 characters."})
+        return
+    }
+    if len(retypeNewPassword) > 150 {
+        render(c, "templates/signup.html", gin.H{"ErrorMessage": "The password cannot exceed 150 characters."})
+        return
+    }
+
+    // Verificar se a nova senha atende aos requisitos de segurança
+    if !validatePassword(newPassword) {
+        render(c, "templates/change.html", gin.H{"ErrorMessage": "Password must be at least 12 characters, with at least one uppercase letter, one lowercase letter, one number, and one special character."})
         return
     }
 
@@ -232,12 +251,12 @@ func handleLogin(c *gin.Context) {
     password := c.PostForm("password")
 
     if username == "" || password == "" {
-        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Usuário ou senha incorretos."})
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Incorrect username or password."})
         return
     }
 
     if len(username) > 50 || len(password) > 300 {
-        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Usuário ou senha incorretos."})
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Incorrect username or password."})
         return
     }
 
@@ -245,14 +264,14 @@ func handleLogin(c *gin.Context) {
     var storedHash string
     err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedHash)
     if err != nil {
-        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Usuário ou senha incorretos."})
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Incorrect username or password."})
         return
     }
 
     // Verify the password
     err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
     if err != nil {
-        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Usuário ou senha incorretos."})
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Incorrect username or password."})
         return
     }
 
@@ -261,7 +280,7 @@ func handleLogin(c *gin.Context) {
     session.Set("user", username)
     if err := session.Save(); err != nil {
         log.Println("Erro ao salvar sessão:", err)
-        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Erro ao salvar a sessão. Tente novamente."})
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Error saving the session, please try again."})
         return
     }
 
@@ -272,10 +291,10 @@ func handleLogin(c *gin.Context) {
 
 func handleLogout(c *gin.Context) {
     session := sessions.Default(c)
-    session.Clear()  // Limpa todos os dados da sessão
-    session.Save()   // Salva a sessão vazia para encerrar
+    session.Clear()
+    session.Save()
     log.Println("User logged out")
-    c.Redirect(http.StatusSeeOther, "/login")  // Redireciona para a página de login
+    c.Redirect(http.StatusSeeOther, "/login")
 }
 
 func main() {
