@@ -16,9 +16,8 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL
 );
 CREATE TABLE sessions (
-    cookie VARCHAR(255) PRIMARY KEY,  -- Alterado para VARCHAR com comprimento
-    user_id TEXT,                     -- ID do usuário associado à sessão
-    expires_at DATETIME,              -- Data e hora de expiração da sessão
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP -- Data e hora de criação da sessão
+    cookie VARCHAR(255) PRIMARY KEY,
+    user_id TEXT,
+    expires_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-```
