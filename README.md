@@ -8,6 +8,7 @@ This is a login page that has the following architecture:
 
 How to set up your database as the application expects:
 ```
+CREATE DATABASE golang_api;
 USE golang_api;
 CREATE TABLE users (
     id INT PRIMARY KEY AUTO_INCREMENT,
