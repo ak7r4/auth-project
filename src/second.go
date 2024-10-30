@@ -9,6 +9,9 @@ import (
     "html/template"
     "net/http"
     "unicode"
+    "crypto/rand"
+    "encoding/base64"
+    "time"
     "github.com/gin-gonic/gin"
     "github.com/gin-contrib/sessions"
     "github.com/gin-contrib/sessions/cookie"
@@ -62,18 +65,50 @@ func render(c *gin.Context, tmpl string, data gin.H) {
     t.Execute(c.Writer, data)
 }
 
+func cleanExpiredSessions() {
+    _, err := db.Exec("DELETE FROM sessions WHERE expires_at < NOW()")
+    if err != nil {
+        log.Println("Error cleaning expired sessions:", err)
+    }
+}
+
+// Generate sessions to use in logout feature
+func generateSessionID() string {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	if err != nil {
+		panic(err)
+	}
+	return base64.StdEncoding.EncodeToString(b)
+}
+
 // Middleware to ensure the user is authenticated
 func authRequired(c *gin.Context) {
     session := sessions.Default(c)
     user := session.Get("user")
-    if user == nil {
-        log.Println("No active session, redirecting to /login")
-        // Se o usuário não estiver autenticado, redireciona para /login
+    sessionID := session.Get("sessionID")
+    var exists bool
+    err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM sessions WHERE cookie = ?)", sessionID).Scan(&exists)
+    if err != nil {
+        log.Println("Error checking session in database:", err)
         c.Redirect(http.StatusSeeOther, "/login")
         c.Abort()
         return
     }
-    log.Println("User authenticated:", user)
+    // Se o usuário não estiver autenticado, redireciona para /login
+    if !exists {
+        log.Println("Session not found in database, redirecting to /login")
+        c.Redirect(http.StatusSeeOther, "/login")
+        c.Abort()
+        return
+    }
+    // Se o usuário não estiver autenticado, redireciona para /login
+    if user == nil || sessionID == nil {
+        log.Println("No active session, redirecting to /login")
+        c.Redirect(http.StatusSeeOther, "/login")
+        c.Abort()
+        return
+    }
     // Se o usuário estiver autenticado, permite o acesso
     c.Next()
 }
@@ -246,7 +281,6 @@ func handleLogin(c *gin.Context) {
         render(c, "templates/pagina.html", gin.H{"ErrorMessage": ""})
         return
     }
-
     username := c.PostForm("username")
     password := c.PostForm("password")
 
@@ -276,14 +310,22 @@ func handleLogin(c *gin.Context) {
     }
 
     // Store session
+    sessionID := generateSessionID()
     session := sessions.Default(c)
     session.Set("user", username)
+    session.Set("sessionID", sessionID)
     if err := session.Save(); err != nil {
         log.Println("Erro ao salvar sessão:", err)
         render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Error saving the session, please try again."})
         return
     }
-
+    _, err = db.Exec("INSERT INTO sessions (cookie, user_id, expires_at) VALUES (?, ?, ?)", sessionID, username, time.Now().Add(30 * time.Minute))
+    if err != nil {
+        log.Println("Error inserting session into database:", err)
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Error saving session to database, please try again."})
+        return
+    }
+    cleanExpiredSessions()
     log.Println("User logged in successfully:", username)
     // Redirect to success page
     c.Redirect(http.StatusSeeOther, "/success")
@@ -291,9 +333,17 @@ func handleLogin(c *gin.Context) {
 
 func handleLogout(c *gin.Context) {
     session := sessions.Default(c)
+    sessionID := session.Get("sessionID")
+    _, err := db.Exec("DELETE FROM sessions WHERE cookie = ?", sessionID)
+    if err != nil {
+        log.Println("Error removing from database:", err)
+        render(c, "templates/pagina.html", gin.H{"ErrorMessage": "Error removing from database, please try again."})
+        return
+    }
+    user := session.Get("user")
+    log.Println("User logged out: ", user)
     session.Clear()
     session.Save()
-    log.Println("User logged out")
     c.Redirect(http.StatusSeeOther, "/login")
 }
 
@@ -304,21 +354,15 @@ func main() {
     // Initialize the Gin router
     r := gin.Default()
 
-    // Session store middleware (using cookie store for simplicity)
-    //envPath := filepath.Join("config", ".env")
-    //err = godotenv.Load(envPath)
-    //if err != nil {
-    //    log.Fatal("Error loading .env file:", err)
-    //}
     secretKey := os.Getenv("SECRET_KEY")
     store := cookie.NewStore([]byte(secretKey))
     store.Options(sessions.Options{
 	Path:     "/",
 	HttpOnly: true,
 	Secure:   false,
-	MaxAge:   5000,
+	MaxAge:   1800,
     })
-    r.Use(sessions.Sessions("mysession", store))
+    r.Use(sessions.Sessions("session", store))
 
     // Serve static files from the assets directory
     r.Static("/assets", "./assets")
