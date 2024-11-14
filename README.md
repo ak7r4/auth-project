@@ -21,3 +21,13 @@ CREATE TABLE sessions (
     expires_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+```
+.env example:
+```
+DB_HOST=localhost
+DB_USERNAME=root
+DB_PASSWORD='root'
+DB_DATABASE=golang_api
+DB_PORT=3306
+SECRET_KEY=Secret_key_to_encrypt_cookies
+```
