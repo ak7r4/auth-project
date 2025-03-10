@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Página de Login</title>
     <link rel="stylesheet" href="/assets/css/styles.css">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
     <div class="login-container">
@@ -16,7 +17,7 @@
         {{if .SuccessMessage}}
         <div class="success-message">{{.SuccessMessage}}</div>
         {{end}}
-	<br>
+        <br>
         <form action="/signup" method="POST">
             <label for="username">New username:</label>
             <input type="text" id="username" name="username" required>
@@ -27,8 +28,10 @@
             <label for="password">Repeat password:</label>
             <input type="password" id="password" name="rpassword" required>
             <br>
+	    <div class="g-recaptcha" data-sitekey="6Lf7me4qAAAAABYxkv1dYO6LhEITN5L8VGkvIzjN"></div>
+            <br>
             <button type="submit">Sign up</button>
-	    <p class="signup-message">Already have an account? <a href="/login">Log in</a></p>
+            <p class="signup-message">Already have an account? <a href="/login">Log in</a></p>
         </form>
     </div>
 </body>

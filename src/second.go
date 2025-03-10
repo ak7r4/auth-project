@@ -8,6 +8,8 @@ import (
     "path/filepath"
     "html/template"
     "net/http"
+    "net/url"
+    "strings"
     "unicode"
     "crypto/rand"
     "encoding/base64"
@@ -19,8 +21,6 @@ import (
     "github.com/joho/godotenv"
     "golang.org/x/crypto/bcrypt"
     "encoding/json"
-    "io/ioutil"
-    "net/url"
 )
 
 var db *sql.DB
@@ -55,50 +55,6 @@ func initDB() {
     if err := db.Ping(); err != nil {
         log.Fatal("Error connecting to the database:", err)
     }
-}
-
-// Estrutura para armazenar a resposta do reCAPTCHA
-type RecaptchaResponse struct {
-    Success    bool    `json:"success"`
-    Score      float64 `json:"score"`
-    Action     string  `json:"action"`
-    ErrorCodes []string `json:"error-codes"`
-}
-
-
-// Função para validar a resposta do reCAPTCHA
-func validateRecaptcha(response string) (bool, error) {
-        // Carrega a chave secreta do reCAPTCHA a partir das variáveis de ambiente
-        //envPath := filepath.Join("config", ".env")
-        secretKey := os.Getenv("RECAPTCHA_SECRET_KEY")
-
-        // Construindo a URL para validação
-        data := url.Values{
-                "secret":   {secretKey},
-                "response": {response},
-        }
-
-        // Enviando a solicitação POST
-        resp, err := http.PostForm("https://www.google.com/recaptcha/api/siteverify", data)
-        if err != nil {
-                return false, err
-        }
-        defer resp.Body.Close()
-
-        // Lendo a resposta
-        body, err := ioutil.ReadAll(resp.Body)
-        if err != nil {
-                return false, err
-        }
-
-        // Decodificando o JSON da resposta
-        var recaptcha RecaptchaResponse
-        if err := json.Unmarshal(body, &recaptcha); err != nil {
-                return false, err
-        }
-
-        // Verificando se a resposta foi bem-sucedida
-        return recaptcha.Success, nil
 }
 
 // Renders an HTML page
@@ -206,6 +162,10 @@ func handleSignup(c *gin.Context) {
     username := c.PostForm("username")
     password := c.PostForm("password")
     rpassword := c.PostForm("rpassword")
+
+    if !validateRecaptcha(c) {
+        return
+    }
 
     // Validações de campos obrigatórios, tamanho e correspondência de senhas
     if username == "" || password == "" || rpassword == "" {
@@ -321,12 +281,73 @@ func handleChangePassword(c *gin.Context) {
 }
 
 
+// Estrutura para receber a resposta do reCAPTCHA
+type RecaptchaResponse struct {
+	Success bool `json:"success"`
+	Errors	[]string `json:"error-codes"`
+}
+
+func verifyRecaptcha(responseToken string) bool {
+	verifyURL := "https://www.google.com/recaptcha/api/siteverify"
+
+        //Recaptcha key
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Erro ao carregar o arquivo .env")
+	}
+        var secretKey = os.Getenv("SECRET_CAPTCHA")
+	fmt.Println("Chave secreta do reCAPTCHA:", secretKey)
+
+
+	// Construir os dados da requisição
+	data := url.Values{}
+	data.Set("secret", secretKey)
+	data.Set("response", responseToken)
+
+	// Fazer a requisição ao Google
+	resp, err := http.Post(verifyURL, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
+	if err != nil {
+		fmt.Println("Erro ao conectar ao reCAPTCHA:", err)
+		return false
+	}
+	defer resp.Body.Close()
+
+	// Decodificar a resposta
+	var result RecaptchaResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		fmt.Println("Erro ao decodificar resposta do reCAPTCHA:", err)
+		return false
+	}
+	if !result.Success {
+        	fmt.Println("Erro na verificação do reCAPTCHA:", result.Errors)
+    	}
+
+	return result.Success
+}
+
+//funcao para reutilizar para validar a resposta do recaptcha
+func validateRecaptcha(c *gin.Context) bool {
+    recaptchaResponse := c.DefaultPostForm("g-recaptcha-response", "")
+    fmt.Println("reCAPTCHA Response:", recaptchaResponse) // Debug
+
+    if recaptchaResponse == "" {
+        fmt.Println("Erro: reCAPTCHA ausente") // Debug
+        c.JSON(http.StatusBadRequest, gin.H{"error": "reCAPTCHA obrigatório"})
+        return false
+    }
+
+    if !verifyRecaptcha(recaptchaResponse) {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "reCAPTCHA inválido"})
+        return false
+    }
+    return true
+}
+
 // Handle login logic
 func handleLogin(c *gin.Context) {
     if c.Request.Method == http.MethodGet {
         c.HTML(http.StatusOK, "pagina.html", gin.H{
             "ErrorMessage": "",
-            "SiteKey":      os.Getenv("RECAPTCHA_SITE_KEY"),
         })
         return
     }
@@ -334,22 +355,13 @@ func handleLogin(c *gin.Context) {
     username := c.PostForm("username")
     password := c.PostForm("password")
 
-    recaptchaResponse := c.PostForm("g-recaptcha-response")
-
-    // Validando o reCAPTCHA
-    valid, err := validateRecaptcha(recaptchaResponse)
-    if err != nil || !valid {
-        // Renderiza a página já existente com a mensagem de erro
-        c.HTML(http.StatusOK, "pagina.html", gin.H{
-            "ErrorMessage": "Erro na verificação do reCAPTCHA.",
-            "SiteKey":      os.Getenv("RECAPTCHA_SITE_KEY"),
-        })
+    if !validateRecaptcha(c) {
         return
     }
+
     if username == "" || password == "" {
         c.HTML(http.StatusOK, "pagina.html", gin.H{
             "ErrorMessage": "Incorrect username or password.",
-            "SiteKey":      os.Getenv("RECAPTCHA_SITE_KEY"),
         })
         return
     }
@@ -357,18 +369,16 @@ func handleLogin(c *gin.Context) {
     if len(username) > 50 || len(password) > 300 {
         c.HTML(http.StatusOK, "pagina.html", gin.H{
             "ErrorMessage": "Incorrect username or password.",
-            "SiteKey":      os.Getenv("RECAPTCHA_SITE_KEY"),
         })
         return
     }
 
     // Search for the user in the database
     var storedHash string
-    err = db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedHash)
+    err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&storedHash)
     if err != nil {
         c.HTML(http.StatusOK, "pagina.html", gin.H{
             "ErrorMessage": "Incorrect username or password.",
-            "SiteKey":      os.Getenv("RECAPTCHA_SITE_KEY"),
         })
         return
     }
@@ -378,7 +388,6 @@ func handleLogin(c *gin.Context) {
     if err != nil {
         c.HTML(http.StatusOK, "pagina.html", gin.H{
             "ErrorMessage": "Incorrect username or password.",
-            "SiteKey":      os.Getenv("RECAPTCHA_SITE_KEY"),
         })
         return
     }
@@ -391,7 +400,6 @@ func handleLogin(c *gin.Context) {
     if err := session.Save(); err != nil {
         c.HTML(http.StatusOK, "pagina.html", gin.H{
 		"ErrorMessage": "Error saving the session, please try again.",
-            "SiteKey":      os.Getenv("RECAPTCHA_SITE_KEY"),
         })
         log.Println("Erro ao salvar sessão:", err)
         return
@@ -400,7 +408,6 @@ func handleLogin(c *gin.Context) {
     if err != nil {
         c.HTML(http.StatusOK, "pagina.html", gin.H{
             "ErrorMessage": "Error saving session to database please try again",
-            "SiteKey":      os.Getenv("RECAPTCHA_SITE_KEY"),
         })
         log.Println("Error inserting session into database:", err)
         return
@@ -435,7 +442,7 @@ func main() {
     r := gin.Default()
     r.LoadHTMLGlob("templates/pagina.html")
 
-
+    // Change to Secure True when finish
     secretKey := os.Getenv("SECRET_KEY")
     store := cookie.NewStore([]byte(secretKey))
     store.Options(sessions.Options{

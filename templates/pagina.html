@@ -5,21 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login page</title>
     <link rel="stylesheet" href="/assets/css/styles.css">
-    <script src="https://www.google.com/recaptcha/api.js?render={{.SiteKey}}"></script>
-    <script>
-        function onSubmit(token) {
-            document.getElementById("recaptchaResponse").value = token;
-            document.getElementById("form").submit();
-        }
-        function getToken(event) {
-            event.preventDefault(); 
-            grecaptcha.ready(function() {
-                grecaptcha.execute('{{.SiteKey}}', {action: 'submit'}).then(function(token) {
-                    onSubmit(token);
-                });
-            });
-        }
-    </script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
     <div class="login-container">
@@ -37,7 +23,8 @@
             <label for="password">Password:</label>
             <input type="password" id="password" name="password" required>
             <br>
-            <input type="hidden" id="recaptchaResponse" name="g-recaptcha-response">
+            <div class="g-recaptcha" data-sitekey="6Lf7me4qAAAAABYxkv1dYO6LhEITN5L8VGkvIzjN"></div>
+            <br>
             <button type="submit">Login</button>
             <p class="signup-message">Don't have an account? <a href="/signup">Sign Up</a></p>
         </form>
