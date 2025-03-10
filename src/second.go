@@ -296,8 +296,6 @@ func verifyRecaptcha(responseToken string) bool {
 		fmt.Println("Erro ao carregar o arquivo .env")
 	}
         var secretKey = os.Getenv("SECRET_CAPTCHA")
-	fmt.Println("Chave secreta do reCAPTCHA:", secretKey)
-
 
 	// Construir os dados da requisição
 	data := url.Values{}
@@ -328,7 +326,6 @@ func verifyRecaptcha(responseToken string) bool {
 //funcao para reutilizar para validar a resposta do recaptcha
 func validateRecaptcha(c *gin.Context) bool {
     recaptchaResponse := c.DefaultPostForm("g-recaptcha-response", "")
-    fmt.Println("reCAPTCHA Response:", recaptchaResponse) // Debug
 
     if recaptchaResponse == "" {
         fmt.Println("Erro: reCAPTCHA ausente") // Debug
