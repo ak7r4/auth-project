@@ -1,4 +1,9 @@
 <h1>Login Page Project</h1><br>
+<br>
+## ⚠️ This repo is depricated, I created 2 new repositories for this project.<br>
+## Basicaly this is a monolithic and in the new repositories I separated the frontend from the backend. <br>
+## Checkout: [Front-end](https://github.com/ak7r4/Auth-Front) and Back-end (comming soon)
+<br>
 Project created to improve my programming skills.<br>
 This is a login page that has the following architecture:
 <br><br><br>
