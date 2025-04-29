@@ -5,7 +5,7 @@ This was a monolithic application, and in the new repositories, I separated the 
 
 Check out: [Front-end](https://github.com/ak7r4/Auth-Front) and **Back-end** (coming soon).
 <br>
-Project created to improve my programming skills.<br>
+## Project created to improve my programming skills.<br>
 This is a login page that has the following architecture:
 <br><br><br>
 
